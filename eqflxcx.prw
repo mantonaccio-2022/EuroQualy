@@ -14,7 +14,6 @@ Fuxo Previsto  - a partir linha 189
 Fuxo Comprativo  - a partir linha 1245
 Fuxo Diario   - a partir linha 864
 Fuxo excel   - a partir linha 1677
-
 /*/
 User Function EQFLXCX()
 
