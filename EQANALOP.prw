@@ -614,16 +614,16 @@ Static Function fConfirma()
         MsAguarde({|lFim|,GravaSZC()},"Processamento","Gravando LOG da Analise...")
 
         // Faço o Estorno da OP Principal
-        MsAguarde({|lFim|,lOkEstPi:=EstorPI()},"Processamento","Estornando a OP de PI...")
+        //MsAguarde({|lFim|,lOkEstPi:=EstorPI()},"Processamento","Estornando a OP de PI...")
 
         //Se Ok estorno do PI , entao Estono as Ops de Envase
         If lOkEstPI
-            MsAguarde({|lFim|,lOkEstEN:=EstorEnv()},"Processamento","Estornando as OP's de Envase..")
+          //  MsAguarde({|lFim|,lOkEstEN:=EstorEnv()},"Processamento","Estornando as OP's de Envase..")
         End
 
         //Se estornou Todo o Processo, entao incluo as OPs de Envase Primeiro
         If lOkEstEN
-            MsAguarde({|lFim|,lOkEnv:=GrvOPEnv()},"Processamento","Gerando OP's de Envase..")
+           // MsAguarde({|lFim|,lOkEnv:=GrvOPEnv()},"Processamento","Gerando OP's de Envase..")
         End
 
         //Se Gravou OP de Envase, Entao Gero OP de PI
