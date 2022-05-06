@@ -974,7 +974,10 @@ Static Function  EQFLXDIA(lAnalitico,lConsolida,lDF,cTipo)
                         SUBSTRING(SE5.E5_FILIAL, 1, 2) AS FILIAL,
                         SED.ED_XNEWNAT AS NATUREZA,
                         SE5.E5_DATA AS MESANO,
-                        SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO AS VALOR,
+                        CASE 
+                             WHEN SE5.E5_TIPODOC = 'ES' THEN (SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO ) * -1
+                             WHEN SE5.E5_TIPODOC <> 'ES' THEN (SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO ) 
+                        END AS VALOR,
                         SE5.E5_TIPO AS TIPO,
                         SE5.E5_TIPODOC AS TIPODOC,
                         SE5.E5_PREFIXO AS PREFIXO,
@@ -1126,7 +1129,10 @@ Static Function  EQFLXDIA(lAnalitico,lConsolida,lDF,cTipo)
                     SELECT
                         SED.ED_XNEWNAT AS NATUREZA,
                         SE5.E5_DATA AS MESANO,
-                        SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO AS VALOR,
+                        CASE 
+                             WHEN SE5.E5_TIPODOC = 'ES' THEN (SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO ) * -1
+                             WHEN SE5.E5_TIPODOC <> 'ES' THEN (SE5.E5_VALOR - SE5.E5_VLJUROS - SE5.E5_VLMULTA + SE5.E5_VLDESCO ) 
+                        END AS VALOR,                        
                         SE5.E5_TIPO AS TIPO,
                         SE5.E5_TIPODOC AS TIPODOC,
                         SE5.E5_PREFIXO AS PREFIXO,
@@ -2413,33 +2419,46 @@ Static Function REGRANAT(NATUREZA,TIPO,TIPODOC,RECPAG,PREFIXO)
     //Tratamento a Pagar
     If RECPAG == "P"
         If RTrim(TIPO) == "NF" .and.  Rtrim(TIPODOC) $ "JR,MT"
-            cNat:="0701002"
+            cNat:=SuperGetMV("EQ_PNAT01",.F.,"0701002")
         End
         If RTrim(TIPO) == "FI"
             If Rtrim(TIPODOC) $ "JR,MT"
-                cNat:="0701012"
+                cNat:=SuperGetMV("EQ_PNAT02",.F.,"0701012")
             ElseIf Rtrim(TIPODOC) $ "VL"
-                cNat:="0601001"
+                cNat:=SuperGetMV("EQ_PNAT03",.F.,"0601001")
             End
         End
         If RTrim(PREFIXO) == "FIN"  .and.  RTRIM(TIPODOC) $ "VL"
-            cNat:="0601001"
+            cNat:=SuperGetMV("EQ_PNAT04",.F.,"0601001")
         End
         If RTrim(TIPO) $ "TX,ISS,FLO,IRF"  .and.  Rtrim(TIPODOC) $ "JR,MT"
-            cNat:="0701017"
+            cNat:=SuperGetMV("EQ_PNAT05",.F.,"0701017")
         End
 
         If RTrim(TIPODOC) == "DC"
-            cNat:="0701013"
+            cNat:=SuperGetMV("EQ_PNAT06",.F.,"0701013")
+        End
+        If RTrim(PREFIXO) == "RAE" //RA ENTRE EMPRESAS
+            cNat:=SuperGetMV("EQ_PNAT07",.F.,"0401017")
+        End
+        If RTrim(PREFIXO) == "PAE" //PA ENTRE EMPRESAS
+            cNat:=SuperGetMV("EQ_PNAT08",.F.,"0101005")
         End
     End
     If RECPAG == "R"
         If RTrim(TIPO) == "NF" .and.  Rtrim(TIPODOC) $ "JR,MT"
-            cNat:="0801003"
+            cNat:=SuperGetMV("EQ_RNAT01",.F.,"0801003")
         End
 
         If RTrim(TIPO) == "NF" .and.  Rtrim(TIPODOC) == "DC"
-            cNat:="0801004"
+            cNat:=SuperGetMV("EQ_RNAT02",.F.,"0801004")
+        End
+        
+        If RTrim(PREFIXO) == "RAE"   //RA ENTRE EMPRESAS
+            cNat:=SuperGetMV("EQ_RNAT03",.F.,"0101005")
+        End
+        If RTrim(PREFIXO) == "PAE" //PA ENTRE EMPRESAS
+            cNat:=SuperGetMV("EQ_RNAT04",.F.,"0401017")
         End
     End
 

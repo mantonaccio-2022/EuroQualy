@@ -4,12 +4,27 @@
 		{
 			"type": "totvs_language_debug",
 			"request": "launch",
-			"name": "Depuração do idioma TOTVS",
-			"program": "${command:AskForProgramName}",
-			"cwb": "${workspaceFolder}",
-			"smartclientBin": "../totvs/bin/smartclient/smartclient.exe",
+			"cwb": "${workspaceRoot}",
+			"name": "Maa",
+			"smartclientBin": "D:\\Totvs12\\smartclient_preprod\\smartclient.exe",
+			"program": "sigaadv",
+			"programArguments": [],
+			"enableMultiThread": false,
+			"enableProfile": false,
 			"isMultiSession": true,
+			"isAccessibilityMode": false,
+			"doNotShowSplash": false,
+			"openglMode": false,
+			"dpiMode": false,
+			"language": "",
+			"ignoreFiles": true,
 			"enableTableSync": true
 		}
-	]
+	],
+	"lastPrograms": [
+		{
+			"label": "sigaadv"
+		}
+	],
+	"lastProgramExecuted": "sigamdi"
 }

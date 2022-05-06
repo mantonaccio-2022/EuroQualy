@@ -33,7 +33,7 @@ User Function EQANALOP()
     //Legendas
     oBrowse:AddLegend( 'SC2->C2_XLIBOP == "1"' , "RED" , "OP Analisada" )
     oBrowse:AddLegend( 'SC2->C2_XLIBOP <> "1"' , "GREEN" , "OP para Analise" )
-    oBrowse:SetFilterDefault("SC2->C2_ITEM ='01'")
+    oBrowse:SetFilterDefault("SC2->C2_ITEM ='01' .AND. SC2->C2_QUJE == 0")
 
     //Ativa a Browse
     oBrowse:Activate()
@@ -135,7 +135,7 @@ User Function EQANAOPA()
     nQtdeOri   := SC2->C2_QUANT
     nQtdeRea   := SC2->C2_QUANT
     nDensOri   := If(Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CONV")==0,SuperGetMv("EQ_OPDENPD",.F.,1.48),;
-    Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CONV"))
+        Posicione("SB1",1,xFilial("SB1")+SC2->C2_PRODUTO,"B1_CONV"))
     nDensRea   := nDensOri
 
     SZC->(dbSetOrder(1))
@@ -394,10 +394,10 @@ User Function CalcMassa(cTipo)
     For nI:=1 To Len(aCoEmpenho)
         If  NwDeleted(oEmpenho,nI)
             Loop
-        End    
+        End
         nTotMassa+=NwFieldGet(oEmpenho,"GXT_QTREAL",nI)
     Next
-     nQtdeRea:=nTotMassa
+    nQtdeRea:=nTotMassa
     nDiferPI:=  nQtdeOri - nSomaPI
     nDifer  := (nTotMassa + nDiferPI) - nQtdeOri
 
@@ -559,12 +559,12 @@ Gravação do LOG de Analise
 /*/
 Static Function fConfirma()
 
-    Local lOkEmp  := .F.
-    Local lOkEnv  := .F.
-    Local lOkEstPI := .F.
-    Local lOkEstEN := .F.
-    Local lOkPI   := .F.
-    Local lOkBxPI := .F.
+    // Local lOkEmp  := .F.
+    // Local lOkEnv  := .F.
+    // Local lOkEstPI := .F.
+    // Local lOkEstEN := .F.
+    // Local lOkPI   := .F.
+    // Local lOkBxPI := .F.
     Local lRet    := .T.
     Private lFim:=.F.
 
@@ -601,18 +601,21 @@ Static Function fConfirma()
             lRet:=.T.
         End
 
-        If Empty(cObs) 
-            If ! lRet 
+        If Empty(cObs)
+            If ! lRet
                 Alert("Necessario informar Justicativa para aumento/Perda Massa")
                 lRet:=.F.
-            End    
+            End
         End
     End
 
     If lRet
 
         MsAguarde({|lFim|,GravaSZC()},"Processamento","Gravando LOG da Analise...")
+        MsAguarde({|lFim|,GravaOP()},"Processamento","Ajustando OPs...")
 
+
+        /*
         // Faço o Estorno da OP Principal
         //MsAguarde({|lFim|,lOkEstPi:=EstorPI()},"Processamento","Estornando a OP de PI...")
 
@@ -628,7 +631,7 @@ Static Function fConfirma()
 
         //Se Gravou OP de Envase, Entao Gero OP de PI
         If lOkEnv
-            MsAguarde({|lFim|,lOkPI:=GrvOPPI()},"Processamento","Gerando OP de PI..")
+           MsAguarde({|lFim|,lOkPI:=GrvOPPI()},"Processamento","Gerando OP de PI..")
         End
 
         // Se gerou OP de PI, então Incluo o Empenho com o novo volume
@@ -642,48 +645,48 @@ Static Function fConfirma()
         End
 
         //Se Todo Processo Ok,entao
-        If lOkEmp .and. lOkEnv  .and. lOkEstPI .and. lOkEstEN .and. lOkPI .and. lOkBxPI
+        If  lOkEmp .and. lOkEnv  .and. lOkEstPI .and. lOkEstEN .and. lOkPI .and. lOkBxPI
             SC2->(dbSetOrder(1))
             If SC2->(dbSeek(xFilial("SC2")+cNumOp))
                 RecLock("SC2",.F.)
                 SC2->C2_XLIBOP:="1"
                 MsUnLock()
             End
+        */
+        cMsg := "OP "+cNumOP+ " Incluida com sucesso"+CRLF
+        cMsg += "Soma das MPs prevista = "+Str(nQtdeOri,10,2)+" "+cUMOri+CRLF
+        cMsg += "Soma das MPs real = "+Str(nQtdeRea,10,2)+" "+cUMOri+CRLF
+        cMsg += "Diferença kg = "+Str(nQtdeRea - nQtdeOri,10,2)+" "+cUMOri+CRLF
+        cMsg += "Porcentagem = "+ STr(nPercQtd,8,4)+" %"
 
-            cMsg := "OP "+cNumOP+ " RE-Incluida com sucesso"+CRLF
-            cMsg += "Soma das MPs prevista = "+Str(nQtdeOri,10,2)+" "+cUMOri+CRLF
-            cMsg += "Soma das MPs real = "+Str(nQtdeRea,10,2)+" "+cUMOri+CRLF
-            cMsg += "Diferença kg = "+Str(nQtdeRea - nQtdeOri,10,2)+" "+cUMOri+CRLF
-            cMsg += "Porcentagem = "+ STr(nPercQtd,8,4)+" %"
+        RecLock("SZC",.T.)
+        SZC->ZC_FILIAL  := xFilial("SZC")
+        SZC->ZC_OP      := Substr(cNumOP,1,6)+"99999"
+        SZC->ZC_NROAN   := cNAnalise
+        SZC->ZC_EMISSAO := dDtEmiss
+        SZC->ZC_TIPO    := "RES"
+        SZC->ZC_PRODUTO := cProduto
+        SZC->ZC_UM      := Posicione("SB1",1,xFilial("SB1")+cProduto,"B1_UM")
+        SZC->ZC_LOCAL   := cLocalAr
+        SZC->ZC_QTDORI  := nQtdeOri
+        SZC->ZC_QTDREA  := nQtdeRea
+        SZC->ZC_PERCQTD := (nQtdeRea/nQtdeOri)
+        SZC->ZC_DENSORI := nDensOri
+        SZC->ZC_DENSREA := nDensRea
+        SZC->ZC_PERCDEN := (nDensRea/nDensOri)
+        SZC->ZC_PIENORI := 0
+        SZC->ZC_PIENREA := 0
+        SZC->ZC_PERPIEN := 0
+        SZC->ZC_OBS     := cMsg
+        SZC->ZC_USUARIO := UsrRetName(RetCodUsr())
+        SZC->ZC_DTLIB   := dDataBase
+        MsUnLock()
 
-            RecLock("SZC",.T.)
-            SZC->ZC_FILIAL  := xFilial("SZC")
-            SZC->ZC_OP      := Substr(cNumOP,1,6)+"99999"
-            SZC->ZC_NROAN   := cNAnalise
-            SZC->ZC_EMISSAO := dDtEmiss
-            SZC->ZC_TIPO    := "RES"
-            SZC->ZC_PRODUTO := cProduto
-            SZC->ZC_UM      := Posicione("SB1",1,xFilial("SB1")+cProduto,"B1_UM")
-            SZC->ZC_LOCAL   := cLocalAr
-            SZC->ZC_QTDORI  := nQtdeOri
-            SZC->ZC_QTDREA  := nQtdeRea
-            SZC->ZC_PERCQTD := (nQtdeRea/nQtdeOri)
-            SZC->ZC_DENSORI := nDensOri
-            SZC->ZC_DENSREA := nDensRea
-            SZC->ZC_PERCDEN := (nDensRea/nDensOri)
-            SZC->ZC_PIENORI := 0
-            SZC->ZC_PIENREA := 0
-            SZC->ZC_PERPIEN := 0
-            SZC->ZC_OBS     := cMsg
-            SZC->ZC_USUARIO := UsrRetName(RetCodUsr())
-            SZC->ZC_DTLIB   := dDataBase
-            MsUnLock()
-
-            MsgInfo(cMsg,"Processo Concluido")
-            oAnaOP:End()
-        Else
-            ALERT("Processo Nao FInalizado Devido a Erro em alguma etapa")
-        End
+        MsgInfo(cMsg,"Processo Concluido")
+        oAnaOP:End()
+        //   Else
+        //     ALERT("Processo Nao FInalizado Devido a Erro em alguma etapa")
+        // End
     End
 Return(Nil)
 
@@ -900,7 +903,7 @@ Static Function GravaSZC()
         If  lUltTolVol
             cMensagem+="<p>em Volume </u></p>"
         End
-        If   lUltTolDen  
+        If   lUltTolDen
             cMensagem+="<p>em Densidade </u></p>"
         End
         aTexto:=U_zMemoToA(SZC->ZC_OBS,80)
@@ -1218,7 +1221,7 @@ Static Function GrvOPEnv()
             SD4->(dbSetOrder(2))
             If  SD4->(dbSeek(xFilial("SD4")+NwFieldGet(oEnvase,"NUMOP",nI)+Space(03)+cProduto+cLocalAr))
                 RecLock("SD4",.F.)
-                SD4->D4_DATA    := dDtEmiss
+                //SD4->D4_DATA    := dDtEmiss
                 SD4->D4_QTDEORI := NwFieldGet(oEnvase,"QTDPIREA",nI)
                 SD4->D4_QUANT   := NwFieldGet(oEnvase,"QTDPIREA",nI)
                 MsUnLock()
@@ -1723,3 +1726,97 @@ User Function EQANAOPV()
     oAnaop:Activate(,,,.T.)
 
 Return
+
+
+/*/{Protheus.doc} GravaOP
+Gravaçaõ dos ajustes de OP
+@type function Processamento
+@version  1.00
+@author mario.antonaccio
+@since 03/05/2022
+@return Logical, Gravacao ok ou nao
+/*/
+Static Function GravaOP()
+
+    Local lRet := .T.
+    Local nI
+    Local aOpAlt:={}
+
+    //Ajustando SC2
+    //Ajustando Quantidade da OP Principal
+    SC2->(dbSetOrder(1))
+    If SC2->(dbSeek(xFilial("SC2")+cNumOp))
+        RecLock("SC2",.F.)
+        SC2->C2_QUANT:=nQtdeRea
+        SC2->C2_QTSEGUM:=ConvUM(SC2->C2_PRODUTO, nQtdeRea, 0,   2)
+        SC2->C2_XLIBOP:="1"
+        MsUnLock()
+    End
+
+    //Ajusta Empenho da OP Principal
+    For nI:=1 to Len(oEmpenho:aCols)
+        SD4->(dbGoTo(NwFieldGet(oEmpenho,"CZI_NRRGAL",nI)))
+        If NwDeleted(oEmpenho,nI)
+            RecLock("SD4",.F.)
+            SD4->(dbDelete())
+            MsUnLock()
+        Else
+            If SD4->D4_QUANT <>   NwFieldGet(oEmpenho,"GXT_QTREAL",nI)
+                RecLock("SD4",.F.)
+                SD4->D4_QTDEORI :=NwFieldGet(oEmpenho,"GXT_QTREAL",nI)
+                SD4->D4_QUANT   :=NwFieldGet(oEmpenho,"GXT_QTREAL",nI)
+                SD4->D4_QTSEGUM:=ConvUM(SD4->D4_COD, NwFieldGet(oEmpenho,"GXT_QTREAL",nI), 0,   2)
+                MsUnLock()
+            End
+        End
+    Next
+
+    // Ajuste das OPS de Envase
+    For nI:=1 To Len(oEnvase:aCols)
+
+        SC2->(dbSetOrder(1))
+        If SC2->(dbSeek(xFilial("SC2")+NwFieldGet(oEnvase,"NUMOP",nI)))
+            RecLock("SC2",.F.)
+            SC2->C2_XLIBOP:="1"
+            If SC2->C2_QUANT <>  Int(NwFieldGet(oEnvase,"QTDENVREA",nI))
+                SC2->C2_QUANT:=Int(NwFieldGet(oEnvase,"QTDENVREA",nI))
+                SC2->C2_QTSEGUM:=ConvUM(SC2->C2_PRODUTO, Int(NwFieldGet(oEnvase,"QTDENVREA",nI)), 0,   2)
+                AADD(aOpAlt,{NwFieldGet(oEnvase,"NUMOP",nI),Int(NwFieldGet(oEnvase,"QTDENVREA",nI))})
+            End
+            MsUnLock()
+
+            //Ajusta Empenho do Envase
+            SD4->(dbSetOrder(2))
+            If  SD4->(dbSeek(xFilial("SD4")+NwFieldGet(oEnvase,"NUMOP",nI)+Space(03)+cProduto+cLocalAr))
+                If SD4->D4_QTDEORI <> NwFieldGet(oEnvase,"QTDPIREA",nI)
+                    RecLock("SD4",.F.)
+                    SD4->D4_QTDEORI := NwFieldGet(oEnvase,"QTDPIREA",nI)
+                    SD4->D4_QUANT   := NwFieldGet(oEnvase,"QTDPIREA",nI)
+                    SD4->D4_QTSEGUM := ConvUM(SD4->D4_COD,  NwFieldGet(oEnvase,"QTDPIREA",nI), 0,   2)
+                    MsUnLock()
+                End
+            End
+        End
+
+    Next
+
+    //Ajusta Embalagem
+    For nI:=1 To Len(aOpAlt)
+        SD4->(dbSetOrder(2))
+        If  SD4->(dbSeek(xFilial("SD4")+aOpAlt[nI,1]+Space(03)))
+            While SD4->(!EOF()) .and. RTRIM(SD4->D4_OP) ==RTRIM(aOpAlt[nI,1])
+                If Substr(SD4->D4_COD,1,3) ==  "ME."
+                    RecLock("SD4",.F.)
+                    SD4->D4_QTDEORI := aOpAlt[nI,2]
+                    SD4->D4_QUANT   := aOpAlt[nI,2]
+                    SD4->D4_QTSEGUM := ConvUM(SD4->D4_COD,  aOpAlt[nI,2], 0,   2)
+                    MsUnLock()
+                End
+                SD4->(dbSkip())
+            End
+        End
+    Next
+
+    MsAguarde({|lFim|,lRet:=GrvBXPI()},"Processamento","Gerando OP de PI..")
+
+Return (lRet)

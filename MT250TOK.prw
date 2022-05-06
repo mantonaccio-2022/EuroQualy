@@ -17,7 +17,7 @@ User Function MT250TOK()
 //	Local cEmail as Character
 
 	SC2->(dbSetOrder(1))
-	SC2->(dbSeek(xFilial("SC2")+SD3->D3_OP))
+	SC2->(dbSeek(xFilial("SC2")+M->D3_OP))
 	If SC2->C2_XLIBOP<>"1"
 		ALERT("OP Nao Analisada - Necessario Analise antes do Apontamento (MT250TOK")
 		lValido:=.F.
