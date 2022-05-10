@@ -1169,6 +1169,16 @@ Static Function GrvBXPI()
             If lMsErroAuto
                 MostraErro()
                 Exit
+            Else
+                CBH->(dbSetOrder(5))
+                If CBH->(dbSeek(xFilial(CBH)+cNumOP+aOper[nI,1] ))
+                    RecLokc("SH6",.F.)
+                    SH6->H6_DATAINI:=CBH->CBH_DTINI
+                    SH6->H6_HORAINI:=CBH->CBH_HRINI
+                    SH6->H6_DATAFIN:=CBH->CBH_DTFIM
+                    SH6->H6_HORAFIN:=CBH->CBH_HRFIM
+                    MsUnLock()
+                End
             End
         Next
     End
