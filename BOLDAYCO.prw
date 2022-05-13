@@ -75,11 +75,16 @@ DV Conta		,"C",01,0,"MV_PAR22"
 	*/
 
 	Pergunte (cPerg,.F.)
-
 	SetMVValue(cPerg,"MV_PAR19", "707")
 	SetMVValue(cPerg,"MV_PAR20", "0001")
-	SetMVValue(cPerg,"MV_PAR21", "739490")
-	SetMVValue(cPerg,"MV_PAR22", "1")
+	
+	If Substr(cFilAnt,1,2) == "02"
+		SetMVValue(cPerg,"MV_PAR21", "739490")
+		SetMVValue(cPerg,"MV_PAR22", "1")
+	ElseIf Substr(cFilAnt,1,2) == "08"
+		SetMVValue(cPerg,"MV_PAR21", "739387")
+		SetMVValue(cPerg,"MV_PAR22", "5")
+	End
 
 	Wnrel := SetPrint(cString,Wnrel,cPerg,@Titulo,cDesc1,cDesc2,cDesc3,.F.,,,Tamanho,,)
 
@@ -254,7 +259,6 @@ Static Function MontaRel()
 		"Mora Diaria de R$ ",;
 		"Sujeito a Protesto após 05 (cinco) dias do vencimento."}
 
-
 	oPrint:=TMSPrinter():New( "Emissão de Boletos [Banco Daycoval]" )
 	oPrint:SetPortrait()
 	oPrint:StartPage()
@@ -331,7 +335,7 @@ Static Function MontaRel()
 		SA1->(DbSetOrder(1))
 		SA1->(DbSeek(xFilial("SA1")+SE1->E1_CLIENTE+SE1->E1_LOJA,.f.))
 
-		aDadosBanco  := {"707",;			// [1]Numero do Banco
+		aDadosBanco  := {"707-2",;			// [1]Numero do Banco
 			"Banco Daycoval ",;// [2]Nome do Banco
 			cAgDayco,;			// [3]Agência
 			cCntDayco,;			// [4]Conta Corrente
@@ -520,9 +524,9 @@ Static Function Impress(oPrint,aBitmap,aDadosEmp,aDadosTit,aDadosBanco,aDatSacad
 	oPrint:Line (0910,1350,0980,1350)
 	oPrint:Line (0910,1550,1050,1550)
 
-	oPrint:Say  (0710,100 ,"Local de Pagamento"                             		,oFont08)
-	oPrint:Say  (0730,400 ,"Até o vencimento, preferencialmente no Itaú."			,oFont09)
-	oPrint:Say  (0770,400 ,"Não receber após o vencimento."			,oFont09)
+	oPrint:Say  (0710,100 ,"Local de Pagamento"                    		,oFont08)
+	oPrint:Say  (0730,400 ,"PAGAVEL EM QUALQUER REDE BANCÁRIA,"			,oFont09)
+	oPrint:Say  (0770,400 ,"MESMO APÓS VENCIMENTO."						,oFont09)
 
 	oPrint:Say  (0710,1910,"Vencimento"												,oFont08)
 	oPrint:Say  (0750,2010,sDtaVen													,oFont10) // Data de Vencimento
@@ -540,7 +544,7 @@ Static Function Impress(oPrint,aBitmap,aDadosEmp,aDadosTit,aDadosBanco,aDatSacad
 	oPrint:Say  (0940,605 ,(alltrim(aDadosTit[7]))+aDadosTit[1]					,oFont10) //Prefixo +Numero+Parcela
 
 	oPrint:Say  (0910,1005,"Espécie Doc."                                   		,oFont08)
-	oPrint:Say  (0940,1050,aDadosTit[8]												,oFont10) //Tipo do Titulo
+	oPrint:Say  (0940,1050,"DM"     												,oFont10) //Tipo do Titulo
 
 	oPrint:Say  (0910,1355,"Aceite"                                         		,oFont08)
 	oPrint:Say  (0940,1455,"N"                                             			,oFont10)
@@ -644,7 +648,7 @@ Static Function Impress(oPrint,aBitmap,aDadosEmp,aDadosTit,aDadosBanco,aDatSacad
 		oPrint:Say  (2014,100,aDadosBanco[2],oFont15n )		// [2]Nome do Banco                     1934
 	EndIf
 
-	oPrint:Say  (1988,569,"707",oFont22 )						// [1]Numero do Banco                       1912
+	oPrint:Say  (1988,569,"707-2",oFont22 )						// [1]Numero do Banco                       1912
 	oPrint:Say  (2014,820,CB_RN_NN[2],oFont14n)	   			//Linha Digitavel do Codigo de Barras   1934
 
 	oPrint:Line (2180,100,2180,2300 )
@@ -659,7 +663,7 @@ Static Function Impress(oPrint,aBitmap,aDadosEmp,aDadosTit,aDadosBanco,aDatSacad
 	oPrint:Line (2280,1550,2420,1550)
 
 	oPrint:Say  (2080,100 ,"Local de Pagamento"                             ,oFont08)
-	oPrint:Say  (2140,400 ,"Não receber após o vencimento."  ,oFont09)
+	oPrint:Say  (2140,400 ,"PAGAVEL EM QUALQUER REDE BANCÁRIA, MESMO APÓS VENCIMENTO"  ,oFont09)
 
 	oPrint:Say  (2080,1910,"Vencimento"                                     ,oFont08)
 	oPrint:Say  (2120,2010,sDtaVen	 		                               ,oFont10)
@@ -677,7 +681,7 @@ Static Function Impress(oPrint,aBitmap,aDadosEmp,aDadosTit,aDadosBanco,aDatSacad
 	oPrint:Say  (2310,605 ,(alltrim(aDadosTit[7]))+aDadosTit[1]			,oFont10) //Prefixo +Numero+Parcela
 
 	oPrint:Say  (2280,1005,"Espécie Doc."                                   ,oFont08)
-	oPrint:Say  (2310,1050,aDadosTit[8]										,oFont10) //Tipo do Titulo
+	oPrint:Say  (2310,1050,"DM"  										,oFont10) //Tipo do Titulo
 
 	oPrint:Say  (2280,1355,"Aceite"                                         ,oFont08)  // 2200
 	oPrint:Say  (2310,1455,"N"                                             ,oFont10)  // 2230
@@ -877,7 +881,7 @@ Static Function Ret_cBarra(cBanco,cAgencia,cConta,cDacCC,cNroDoc,nValor,dVencto)
 	Local CB           := ''
 	Local s            := ''
 	Local _cfator      := strzero(dVencto - ctod("07/10/97"),4)
-	Local _cCart	   := "109" //carteira de cobranca
+	Local _cCart	   := "121" //carteira de cobranca
 
 	//-------- Definicao do NOSSO NUMERO
 	s    :=  cAgencia + cConta + _cCart + bldocnufinal

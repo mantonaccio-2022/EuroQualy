@@ -8,6 +8,13 @@ Rotina de |Recalculo de Envase e baixa de OP quando da alteração de OP
 @author mario.antonaccio
 @since 06/26/2022
 @return Character, sem retorno definido
+
+Pontos de entrada vinculados
+MT250TOK - nao permite inclusao caso OP nao esteja analisada
+MT681INC - Nao permite inclusao de OP caso nao esteja analisada
+MT250GREST Ponto de Entrada para permitir nova Analise OP quando do estorno
+MT680GREST Ponto de Entrada para permitir nova Analise OP quando do estorno
+MTA650I PE na Inclusao da Ordem de producao - Grava campo para forçar Analise
 /*/
 User Function EQANALOP()
 
@@ -118,7 +125,7 @@ User Function EQANAOPA()
         RecLock("SC2",.F.)
         SC2->C2_XLIBOP:="1"
         MsUnLock()
-        MsgInfo("OP ja Encerrada.Nao Há necessidade de Análise","Ja Encerrada")
+        MsgInfo("OP ja Encerrada. Nao Há necessidade de Análise","Ja Encerrada")
         Return
     End
 
@@ -564,7 +571,7 @@ Static Function fConfirma()
     // Local lOkEstPI := .F.
     // Local lOkEstEN := .F.
     // Local lOkPI   := .F.
-    // Local lOkBxPI := .F.
+    Local lOkBxPI := .F.
     Local lRet    := .T.
     Private lFim:=.F.
 
@@ -611,82 +618,54 @@ Static Function fConfirma()
 
     If lRet
 
-        MsAguarde({|lFim|,GravaSZC()},"Processamento","Gravando LOG da Analise...")
         MsAguarde({|lFim|,GravaOP()},"Processamento","Ajustando OPs...")
+        MsAguarde({|lFim|,lOkBxPI:=GrvBXPI()},"Processamento","Baixando OP de PI..")
 
+        If lOkBxPI
+            MsAguarde({|lFim|,GravaSZC()},"Processamento","Gravando LOG da Analise...")
 
-        /*
-        // Faço o Estorno da OP Principal
-        //MsAguarde({|lFim|,lOkEstPi:=EstorPI()},"Processamento","Estornando a OP de PI...")
-
-        //Se Ok estorno do PI , entao Estono as Ops de Envase
-        If lOkEstPI
-          //  MsAguarde({|lFim|,lOkEstEN:=EstorEnv()},"Processamento","Estornando as OP's de Envase..")
-        End
-
-        //Se estornou Todo o Processo, entao incluo as OPs de Envase Primeiro
-        If lOkEstEN
-           // MsAguarde({|lFim|,lOkEnv:=GrvOPEnv()},"Processamento","Gerando OP's de Envase..")
-        End
-
-        //Se Gravou OP de Envase, Entao Gero OP de PI
-        If lOkEnv
-           MsAguarde({|lFim|,lOkPI:=GrvOPPI()},"Processamento","Gerando OP de PI..")
-        End
-
-        // Se gerou OP de PI, então Incluo o Empenho com o novo volume
-        If lOkPI
-            MsAguarde({|lFim|,lOkEmp:=GrvOpEmp()},"Processamento","Gerando Empenho da OP de PI..")
-        End
-
-        // Se Gerou Empenho de PI e a OP de PI entao baixo a OP de PI
-        If lOkEmp
-            MsAguarde({|lFim|,lOkBxPI:=GrvBXPI()},"Processamento","Baixando OP de PI..")
-        End
-
-        //Se Todo Processo Ok,entao
-        If  lOkEmp .and. lOkEnv  .and. lOkEstPI .and. lOkEstEN .and. lOkPI .and. lOkBxPI
+            //Libera Analise OP
             SC2->(dbSetOrder(1))
             If SC2->(dbSeek(xFilial("SC2")+cNumOp))
                 RecLock("SC2",.F.)
                 SC2->C2_XLIBOP:="1"
                 MsUnLock()
             End
-        */
-        cMsg := "OP "+cNumOP+ " Incluida com sucesso"+CRLF
-        cMsg += "Soma das MPs prevista = "+Str(nQtdeOri,10,2)+" "+cUMOri+CRLF
-        cMsg += "Soma das MPs real = "+Str(nQtdeRea,10,2)+" "+cUMOri+CRLF
-        cMsg += "Diferença kg = "+Str(nQtdeRea - nQtdeOri,10,2)+" "+cUMOri+CRLF
-        cMsg += "Porcentagem = "+ STr(nPercQtd,8,4)+" %"
 
-        RecLock("SZC",.T.)
-        SZC->ZC_FILIAL  := xFilial("SZC")
-        SZC->ZC_OP      := Substr(cNumOP,1,6)+"99999"
-        SZC->ZC_NROAN   := cNAnalise
-        SZC->ZC_EMISSAO := dDtEmiss
-        SZC->ZC_TIPO    := "RES"
-        SZC->ZC_PRODUTO := cProduto
-        SZC->ZC_UM      := Posicione("SB1",1,xFilial("SB1")+cProduto,"B1_UM")
-        SZC->ZC_LOCAL   := cLocalAr
-        SZC->ZC_QTDORI  := nQtdeOri
-        SZC->ZC_QTDREA  := nQtdeRea
-        SZC->ZC_PERCQTD := (nQtdeRea/nQtdeOri)
-        SZC->ZC_DENSORI := nDensOri
-        SZC->ZC_DENSREA := nDensRea
-        SZC->ZC_PERCDEN := (nDensRea/nDensOri)
-        SZC->ZC_PIENORI := 0
-        SZC->ZC_PIENREA := 0
-        SZC->ZC_PERPIEN := 0
-        SZC->ZC_OBS     := cMsg
-        SZC->ZC_USUARIO := UsrRetName(RetCodUsr())
-        SZC->ZC_DTLIB   := dDataBase
-        MsUnLock()
+            cMsg := "OP "+cNumOP+ " Incluida com sucesso"+CRLF
+            cMsg += "Soma das MPs prevista = "+Str(nQtdeOri,10,2)+" "+cUMOri+CRLF
+            cMsg += "Soma das MPs real = "+Str(nQtdeRea,10,2)+" "+cUMOri+CRLF
+            cMsg += "Diferença kg = "+Str(nQtdeRea - nQtdeOri,10,2)+" "+cUMOri+CRLF
+            cMsg += "Porcentagem = "+ STr(nPercQtd,8,4)+" %"
 
-        MsgInfo(cMsg,"Processo Concluido")
-        oAnaOP:End()
-        //   Else
-        //     ALERT("Processo Nao FInalizado Devido a Erro em alguma etapa")
-        // End
+            RecLock("SZC",.T.)
+            SZC->ZC_FILIAL  := xFilial("SZC")
+            SZC->ZC_OP      := Substr(cNumOP,1,6)+"99999"
+            SZC->ZC_NROAN   := cNAnalise
+            SZC->ZC_EMISSAO := dDtEmiss
+            SZC->ZC_TIPO    := "RES"
+            SZC->ZC_PRODUTO := cProduto
+            SZC->ZC_UM      := Posicione("SB1",1,xFilial("SB1")+cProduto,"B1_UM")
+            SZC->ZC_LOCAL   := cLocalAr
+            SZC->ZC_QTDORI  := nQtdeOri
+            SZC->ZC_QTDREA  := nQtdeRea
+            SZC->ZC_PERCQTD := (nQtdeRea/nQtdeOri)
+            SZC->ZC_DENSORI := nDensOri
+            SZC->ZC_DENSREA := nDensRea
+            SZC->ZC_PERCDEN := (nDensRea/nDensOri)
+            SZC->ZC_PIENORI := 0
+            SZC->ZC_PIENREA := 0
+            SZC->ZC_PERPIEN := 0
+            SZC->ZC_OBS     := cMsg
+            SZC->ZC_USUARIO := UsrRetName(RetCodUsr())
+            SZC->ZC_DTLIB   := dDataBase
+            MsUnLock()
+
+            MsgInfo(cMsg,"Processo Concluido")
+            oAnaOP:End()
+            //   Else
+            //     ALERT("Processo Nao FInalizado Devido a Erro em alguma etapa")
+        End
     End
 Return(Nil)
 
@@ -885,9 +864,9 @@ Static Function GravaSZC()
         SZC->ZC_DENSORI  := 0
         SZC->ZC_DENSREA  := 0
         SZC->ZC_PERCDEN  := 0
-        SZC->ZC_PIENVORI := 0
-        SZC->ZC_PIENVREA := 0
-        SZC->ZC_PERCPIEN := 0
+        SZC->ZC_PIENORI  := 0
+        SZC->ZC_PIENREA  := 0
+        SZC->ZC_PERPIEN := 0
         SZC->ZC_OBS      := " "
         SZC->ZC_USUARIO  := UsrRetName(RetCodUsr())
         SZC->ZC_DTLIB    := dDataBase
@@ -920,177 +899,6 @@ Static Function GravaSZC()
 
 Return
 
-/*/{Protheus.doc} EstorPI
-Estorna a OP Original
-@type function Processamento
-@version  1.00
-@author mario.antonaccio
-@since 06/03/2022
-@return variant, Sem retorno - Salvose Der Erro de ExecAturo
-/*/
-Static Function EstorPI()
-
-    Local aMata650:={}
-    Private lMsErroAuto:=.F.
-
-    /// Estorno OP para reciar novamente com nova quantiade e empenho
-
-    aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
-        {'C2_NUM'                   , Substr(cNumOp,1,6), NIL},;
-        {'C2_ITEM'                  , Substr(cNumOP,7,2), NIL},;
-        {'C2_SEQUEN'                , substr(cNumOp,9,3), NIL},;
-        {'C2_PRODUTO'               , cProduto          , NIL},;
-        {'C2_LOCAL'                 , cLocalAr          , NIL},;
-        {'C2_QUANT'                 , nQtdeOri          , NIL},;
-        {'C2_DATPRI'                , dDtEmiss          , NIL},;
-        {'C2_DATPRF'                , dDtPrf            , NIL},;
-        {'AUTEXPLODE'               , "S"               , NIL}} // Indica de explode empenho
-
-    ///Se For Qualy, antes de estornar pega o Horario Inicial para a operação 40
-    If cFilAnt == "0803"
-        SH6->(dbSetOrder(1))
-        If SH6->(dbSeek(xFilial("SH6")+cNumOP+cProduto+"40"))
-            cTempoIni:=SH6->H56_HORAINI
-            dDataIni:=SH6->H6_DATAINI
-        End
-    End
-
-    SC2->(DbSetOrder(1))//FILIAL + NUM + ITEM + SEQUEN + ITEMGRD
-    SC2->(DbSeek(xFilial("SC2")+cNumOP))
-
-    msExecAuto({|x,Y| Mata650(x,Y)},aMata650,5)
-
-    If lMsErroAuto
-        MostraErro()
-    End
-
-Return(!(lMsErroAuto))
-
-
-/*/{Protheus.doc} EstorEnv
-Estorna a OP dos Envases
-@type function Processameto
-@version  1.00
-@author mario.antonaccio
-@since 06/03/2022
-@return variant, Sem retorno - Salvose Der Erro de ExecAturo
-/*/
-Static Function EstorEnv()
-
-    Local nI
-    Local aMata650:={}
-    Local cOpEnv
-    Private lMsErroAuto:=.F.
-
-    /// Estorno OP para reciar novamente com nova quantiade e empenho
-
-    For nI:=1 To Len(oEnvase:aCols)
-
-        cOpEnv:=NwFieldGet(oEnvase,"NUMOP",nI)
-
-        aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
-            {'C2_NUM'                   , Substr(cOpEnv,1,6)                , NIL},;
-            {'C2_ITEM'                  , Substr(cOPEnv,7,2)                , NIL},;
-            {'C2_SEQUEN'                , substr(cOpEnv,9,3)                , NIL},;
-            {'C2_PRODUTO'               , NwFieldGet(oEnvase,"PROD",nI)     , NIL},;
-            {'C2_LOCAL'                 , NwFieldGet(oEnvase,"ARMAZ",nI)    , NIL},;
-            {'C2_QUANT'                 , NwFieldGet(oEnvase,"QTDENVORI",nI), NIL},;
-            {'C2_DATPRI'                , dDtEmiss                          , NIL},;
-            {'C2_DATPRF'                , dDtPrf                            , NIL},;
-            {'AUTEXPLODE'               , "S"                               , NIL}} // Indica de explode empenho
-
-        SC2->(DbSetOrder(1))//FILIAL + NUM + ITEM + SEQUEN + ITEMGRD
-        SC2->(DbSeek(xFilial("SC2")+cOPEnv))
-
-        msExecAuto({|x,Y| Mata650(x,Y)},aMata650,5)
-
-        If lMsErroAuto
-            MostraErro()
-            Exit
-        End
-
-    Next
-Return(!(lMsErroAuto))
-
-
-/*/{Protheus.doc} GrvOPPI
-Grava a OP Original
-@type function Processameto
-@version  1.00
-@author mario.antonaccio
-@since 06/03/2022
-@return variant, Sem retorno - Salvose Der Erro de ExecAturo
-/*/
-Static Function GrvOPPI()
-
-    Local aMata650:={}
-    Private lMsErroAuto:=.F.
-
-    /// Estorno OP para reciar novamente com nova quantidade e empenho
-
-    aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
-        {'C2_NUM'                   , Substr(cNumOp,1,6), NIL},;
-        {'C2_ITEM'                  , Substr(cNumOP,7,2), NIL},;
-        {'C2_SEQUEN'                , substr(cNumOp,9,3), NIL},;
-        {'C2_PRODUTO'               , cProduto          , NIL},;
-        {'C2_LOCAL'                 , cLocalAr          , NIL},;
-        {'C2_QUANT'                 , nQtdeRea          , NIL},;
-        {'C2_DATPRI'                , dDataBase         , NIL},;
-        {'C2_DATPRF'                , dDataBase         , NIL},;
-        {'AUTEXPLODE'               , "N"               , NIL}} // Indica de explode empenho
-
-    msExecAuto({|x,Y| Mata650(x,Y)},aMata650,3)
-    If lMsErroAuto
-        MostraErro()
-    Else
-        RecLock("SC2",.F.)
-        SC2->C2_DATPRI  := dDtPri
-        SC2->C2_DATPRF  := dDtPrf
-        SC2->C2_EMISSAO := dDtEMiss
-        MsUnlock()
-    End
-Return(!(lMsErroAuto))
-
-/*/{Protheus.doc} GrvOPEMP
-Estorna a OP Original e grava ujmanova com o mesmo Numero
-@type function Processameto
-@version  1.00
-@author mario.antonaccio
-@since 06/03/2022
-@return variant, Sem retorno - Salvose Der Erro de ExecAturo
-/*/
-Static Function GrvOPEMP()
-
-    Local nI
-    Local aCabec:={}
-    Local aItens:={}
-    Local aItem:={}
-    Private lMsErroAuto:=.F.
-
-    //Monta o cabeçalho com o número da OP que será utilizada para inclusão dos empenhos.
-    aCabec := {{"D4_OP",cNumOP+Space(03),NIL}}
-
-    //Adiciona novo empenho
-    For nI:=1 to Len(oEmpenho:aCols)
-        If NwDeleted(oEmpenho,nI)
-            Loop
-        End
-        aItens := {}
-        aadd(aItens, {"D4_COD"    , NwFieldGet(oEmpenho,"D4_COD",nI)    , NIL})
-        aadd(aItens, {"D4_LOCAL"  , NwFieldGet(oEmpenho,"D4_LOCAL",nI)  , NIL})
-        aadd(aItens, {"D4_DATA"   , dDtEmiss                            , NIL})
-        aadd(aItens, {"D4_OP"     , cNumOp                              , NIL})
-        aadd(aItens, {"D4_QTDEORI", NwFieldGet(oEmpenho,"GXT_QTREAL",nI), NIL})
-        aadd(aItens, {"D4_QUANT"  , NwFieldGet(oEmpenho,"GXT_QTREAL",nI), NIL})
-        aadd(aItens, {"D4_TRT"    , "001"                               , NIL})
-        //Adiciona a linha do empenho no array de itens.
-        aAdd(aItem,aItens)
-    Next
-    MSExecAuto({|x,y,z| mata381(x,y,z)},aCabec,aItem,3)
-    If lMsErroAuto
-        MostraErro()
-    EndIf
-Return(!(lMsErroAuto))
 
 /*/{Protheus.doc} GrvBxPI
 Baixa  OP Original
@@ -1108,6 +916,7 @@ Static Function GrvBXPI()
     Local cRoteiro:=""
     Local nI
     Local nPerda:=If(nQtdeOri > nQtdeRea,nQtdeOri - nQtdeRea,0)
+    Local nParamAnt:=3
     Private lMsErroAuto:=.F.
 
     If cFilAnt == "0200"
@@ -1147,98 +956,80 @@ Static Function GrvBXPI()
         Next
 
         For nI:=1 To Len(aOper)
-            aVetor :={{"H6_FILIAL" ,cFilAnt ,NIL},;
-                {"H6_OP"                   , cNumOP                                       , NIL},;
-                {"H6_PRODUTO"              , cProduto                                     , NIL},;
-                {"H6_OPERAC"               , aOper[nI,1]                                  , NIL},;
-                {"H6_RECURSO"              , aOper[nI,2]                                  , NIL},;
-                {"H6_DTAPONT"              , dDataBase                                    , NIL},;
-                {"H6_DATAINI"              , dDataIni                                     , NIL},;
-                {"H6_HORAINI"              , cTempoINI                                    , NIL},;
-                {"H6_DATAFIN"              , dDataBase                                    , NIL},;
-                {"H6_HORAFIN"              , Substring(IncTime( TIME() , 0 , 3 , 00 ),1,5), NIL},;
-                {"H6_PT"                   , 'T'                                          , NIL},;
-                {"H6_LOCAL"                , cLocalAr                                     , NIL},;
-                {"H6_QTDPERD"              , nPerda                                       , NIL},;
-                {"H6_QTDPROD"              , nQtdeRea                                     , NIL}}
 
-            //chamada ExecAuto
-            //MSExecAuto({|v,x,y,z| MATA681(v,x,y,z)},"SH6",0,3,aVetor)
-            MSExecAuto({|x| mata681(x)},aVetor)
+            //Se nao for a operação FINAL entao so atualiza registros
+            If aOper[nI,1] <> SuperGetMv("EQ_OPERFIN",.F.,"40")
+                //Ajustando OP de recuros anteriores
+                SH6->(dbSetOrder(1))
+                If SH6->(dbSeek(xFilial("SH6")+cNumOP+Space(03)+cProduto+aOper[nI,1]))
+                    If SH6->H6_QTDPROD <>  nQtdeRea
+                        RecLock("SH6",.F.)
+                        SH6->H6_QTDPROD:=nQtdeRea
+                        SH6->H6_QTDPRO2:=ConvUM(SH6->H6_PRODUTO,nQtdeRea, 0,   2)
+                        MsUnLock()
+                    End
+                End
 
-            If lMsErroAuto
-                MostraErro()
-                Exit
-            Else
+                // Atualiza Apontamento Coletor
                 CBH->(dbSetOrder(5))
-                If CBH->(dbSeek(xFilial(CBH)+cNumOP+aOper[nI,1] ))
-                    RecLokc("SH6",.F.)
-                    SH6->H6_DATAINI:=CBH->CBH_DTINI
-                    SH6->H6_HORAINI:=CBH->CBH_HRINI
-                    SH6->H6_DATAFIN:=CBH->CBH_DTFIM
-                    SH6->H6_HORAFIN:=CBH->CBH_HRFIM
+                If CBH->(dbSeek(xFilial("CBH")+cNumOP+Space(03)+aOper[nI,1]))
+                    While CBH->(!EOF()) .and.;
+                            CBH->CBH_FILIAL == xFilial("CBH") .and.;
+                            CBH->CBH_OP == cNumOP+Space(03) .and.;
+                            CBH->CBH_OPERAC == aOper[nI,1]
+
+                        If CBH->CBH_QTD <> nQtdeRea
+                            RecLock("CBH",.F.)
+                            CBH->CBH_QTD:=nQtdeRea
+                            MsUnLock()
+                        End
+                        CBH->(dbSkip())
+                    End
+                End
+                Loop
+            End
+        Next
+
+        // Verifica Grupo de perguntas
+        Pergunte ("MTA680",.F.)
+        nParamAnt:=MV_PAR07
+	    SetMVValue("MTA680","MV_PAR07", 3)
+	
+        aVetor :={{"H6_FILIAL" ,cFilAnt ,NIL},;
+            {"H6_OP"                   , cNumOP                                       , NIL},;
+            {"H6_PRODUTO"              , cProduto                                     , NIL},;
+            {"H6_OPERAC"               , aOper[Len(aOper),1]                          , NIL},;
+            {"H6_RECURSO"              , aOper[Len(aOper),2]                          , NIL},;
+            {"H6_DTAPONT"              , dDataBase                                    , NIL},;
+            {"H6_DATAINI"              , dDataIni                                     , NIL},;
+            {"H6_HORAINI"              , cTempoINI                                    , NIL},;
+            {"H6_DATAFIN"              , dDataBase                                    , NIL},;
+            {"H6_HORAFIN"              , Substring(IncTime( TIME() , 0 , 3 , 00 ),1,5), NIL},;
+            {"H6_PT"                   , 'T'                                          , NIL},;
+            {"H6_LOCAL"                , cLocalAr                                     , NIL},;
+            {"H6_QTDPERD"              , nPerda                                       , NIL},;
+            {"H6_QTDPROD"              , nQtdeRea                                     , NIL}}
+
+        //chamada ExecAuto
+        //MSExecAuto({|v,x,y,z| MATA681(v,x,y,z)},"SH6",0,3,aVetor)
+        MSExecAuto({|x| mata681(x)},aVetor)
+
+        If lMsErroAuto
+            MostraErro()
+        Else
+        Pergunte ("MTA680",.F.)
+        SetMVValue("MTA680","MV_PAR07", nParamAnt)
+	
+            CBH->(dbSetOrder(5))
+            If CBH->(dbSeek(xFilial("CBH")+cNumOP+Space(03)+SuperGetMv("EQ_OPERFIN",.F.,"40")))
+                If CBH->CBH_QTD <> nQtdeRea
+                    RecLock("CBH",.F.)
+                    CBH->CBH_QTD:=nQtdeRea
                     MsUnLock()
                 End
             End
-        Next
-    End
-Return(!(lMsErroAuto))
-
-/*/{Protheus.doc} GrvOPEnv
-Grava as Ops de envase
-@type function Processameto
-@version  1.00
-@author mario.antonaccio
-@since 06/03/2022
-@return variant, Sem retorno - Salvose Der Erro de ExecAturo
-/*/
-Static Function GrvOPEnv()
-
-    Local nI
-    Local cItem
-    Local aMata650:={}
-    Private lMsErroAuto:=.F.
-
-    ///OP para reciar novamente com nova quantidade e empenho
-    For nI:=1 To Len(oEnvase:aCols)
-
-        cOpEnv:=NwFieldGet(oEnvase,"NUMOP",nI)
-        cItem:=Soma1(substr(cOpEnv,9,3) ,3)
-
-        aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
-            {'C2_NUM'                   , Substr(cOpEnv,1,6)                     , NIL},;
-            {'C2_ITEM'                  , Substr(cOPEnv,7,2)                     , NIL},;
-            {'C2_SEQUEN'                , substr(cOpEnv,9,3)                     , NIL},;
-            {'C2_PRODUTO'               , NwFieldGet(oEnvase,"PROD",nI)          , NIL},;
-            {'C2_LOCAL'                 , NwFieldGet(oEnvase,"ARMAZ",nI)         , NIL},;
-            {'C2_QUANT'                 , Int(NwFieldGet(oEnvase,"QTDENVREA",nI)), NIL},;
-            {'C2_DATPRI'                , dDatabase                              , NIL},;
-            {'C2_DATPRF'                , dDataBase                              , NIL},;
-            {'AUTEXPLODE'               , "S"                                    , NIL}} // Indica de explode empenho
-
-        msExecAuto({|x,Y| Mata650(x,Y)},aMata650,3)
-        If lMsErroAuto
-            MostraErro()
-            Exit
-        Else
-            //Acerta Qtde Empenho Conforme o calculo
-            RecLock("SC2",.F.)
-            SC2->C2_DATPRI:=dDtPri
-            SC2->C2_DATPRF:=dDtPrf
-            SC2->C2_EMISSAO:=dDtEMiss
-            SC2->C2_XLIBOP:="1"
-            MsUnLock()
-            SD4->(dbSetOrder(2))
-            If  SD4->(dbSeek(xFilial("SD4")+NwFieldGet(oEnvase,"NUMOP",nI)+Space(03)+cProduto+cLocalAr))
-                RecLock("SD4",.F.)
-                //SD4->D4_DATA    := dDtEmiss
-                SD4->D4_QTDEORI := NwFieldGet(oEnvase,"QTDPIREA",nI)
-                SD4->D4_QUANT   := NwFieldGet(oEnvase,"QTDPIREA",nI)
-                MsUnLock()
-            End
         End
-    Next
-
+    End
 Return(!(lMsErroAuto))
 
 /*/{Protheus.doc} zMemoToA
@@ -1661,8 +1452,6 @@ User Function EQANAOPV()
     SC2->(dbSetOrder(1))
     SC2->(dbSeek(xFilial("SC2")+(_TMP)->ZC_OP))
 
-
-
     cNumOP     := (_TMP)->ZC_OP
     dDtEmiss   := STOD((_TMP)->ZC_EMISSAO)
     dDtPri     := SC2->C2_DATPRI
@@ -1748,7 +1537,6 @@ Gravaçaõ dos ajustes de OP
 /*/
 Static Function GravaOP()
 
-    Local lRet := .T.
     Local nI
     Local aOpAlt:={}
 
@@ -1759,7 +1547,6 @@ Static Function GravaOP()
         RecLock("SC2",.F.)
         SC2->C2_QUANT:=nQtdeRea
         SC2->C2_QTSEGUM:=ConvUM(SC2->C2_PRODUTO, nQtdeRea, 0,   2)
-        SC2->C2_XLIBOP:="1"
         MsUnLock()
     End
 
@@ -1827,6 +1614,276 @@ Static Function GravaOP()
         End
     Next
 
-    MsAguarde({|lFim|,lRet:=GrvBXPI()},"Processamento","Gerando OP de PI..")
+Return (NIL)
 
-Return (lRet)
+///////////////////////////   funcoes desativadas //////////////////////////////
+
+
+/*/{Protheus.doc} GrvOPEnv
+Grava as Ops de envase
+@type function Processameto
+@version  1.00
+@author mario.antonaccio
+@since 06/03/2022
+@return variant, Sem retorno - Salvose Der Erro de ExecAturo
+/*/
+Static Function GrvOPEnv()
+
+    Local nI
+    Local cItem
+    Local aMata650:={}
+    Private lMsErroAuto:=.F.
+
+    ///OP para reciar novamente com nova quantidade e empenho
+    For nI:=1 To Len(oEnvase:aCols)
+
+        cOpEnv:=NwFieldGet(oEnvase,"NUMOP",nI)
+        cItem:=Soma1(substr(cOpEnv,9,3) ,3)
+
+        aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
+            {'C2_NUM'                   , Substr(cOpEnv,1,6)                     , NIL},;
+            {'C2_ITEM'                  , Substr(cOPEnv,7,2)                     , NIL},;
+            {'C2_SEQUEN'                , substr(cOpEnv,9,3)                     , NIL},;
+            {'C2_PRODUTO'               , NwFieldGet(oEnvase,"PROD",nI)          , NIL},;
+            {'C2_LOCAL'                 , NwFieldGet(oEnvase,"ARMAZ",nI)         , NIL},;
+            {'C2_QUANT'                 , Int(NwFieldGet(oEnvase,"QTDENVREA",nI)), NIL},;
+            {'C2_DATPRI'                , dDatabase                              , NIL},;
+            {'C2_DATPRF'                , dDataBase                              , NIL},;
+            {'AUTEXPLODE'               , "S"                                    , NIL}} // Indica de explode empenho
+
+        msExecAuto({|x,Y| Mata650(x,Y)},aMata650,3)
+        If lMsErroAuto
+            MostraErro()
+            Exit
+        Else
+            //Acerta Qtde Empenho Conforme o calculo
+            RecLock("SC2",.F.)
+            SC2->C2_DATPRI:=dDtPri
+            SC2->C2_DATPRF:=dDtPrf
+            SC2->C2_EMISSAO:=dDtEMiss
+            SC2->C2_XLIBOP:="1"
+            MsUnLock()
+            SD4->(dbSetOrder(2))
+            If  SD4->(dbSeek(xFilial("SD4")+NwFieldGet(oEnvase,"NUMOP",nI)+Space(03)+cProduto+cLocalAr))
+                RecLock("SD4",.F.)
+                //SD4->D4_DATA    := dDtEmiss
+                SD4->D4_QTDEORI := NwFieldGet(oEnvase,"QTDPIREA",nI)
+                SD4->D4_QUANT   := NwFieldGet(oEnvase,"QTDPIREA",nI)
+                MsUnLock()
+            End
+        End
+    Next
+
+Return(!(lMsErroAuto))
+
+/*/{Protheus.doc} EstorPI
+Estorna a OP Original
+@type function Processamento
+@version  1.00
+@author mario.antonaccio
+@since 06/03/2022
+@return variant, Sem retorno - Salvose Der Erro de ExecAturo
+/*/
+Static Function EstorPI()
+
+    Local aMata650:={}
+    Private lMsErroAuto:=.F.
+
+    /// Estorno OP para reciar novamente com nova quantiade e empenho
+
+    aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
+        {'C2_NUM'                   , Substr(cNumOp,1,6), NIL},;
+        {'C2_ITEM'                  , Substr(cNumOP,7,2), NIL},;
+        {'C2_SEQUEN'                , substr(cNumOp,9,3), NIL},;
+        {'C2_PRODUTO'               , cProduto          , NIL},;
+        {'C2_LOCAL'                 , cLocalAr          , NIL},;
+        {'C2_QUANT'                 , nQtdeOri          , NIL},;
+        {'C2_DATPRI'                , dDtEmiss          , NIL},;
+        {'C2_DATPRF'                , dDtPrf            , NIL},;
+        {'AUTEXPLODE'               , "S"               , NIL}} // Indica de explode empenho
+
+    ///Se For Qualy, antes de estornar pega o Horario Inicial para a operação 40
+    If cFilAnt == "0803"
+        SH6->(dbSetOrder(1))
+        If SH6->(dbSeek(xFilial("SH6")+cNumOP+cProduto+"40"))
+            cTempoIni:=SH6->H56_HORAINI
+            dDataIni:=SH6->H6_DATAINI
+        End
+    End
+
+    SC2->(DbSetOrder(1))//FILIAL + NUM + ITEM + SEQUEN + ITEMGRD
+    SC2->(DbSeek(xFilial("SC2")+cNumOP))
+
+    msExecAuto({|x,Y| Mata650(x,Y)},aMata650,5)
+
+    If lMsErroAuto
+        MostraErro()
+    End
+
+Return(!(lMsErroAuto))
+
+
+/*/{Protheus.doc} EstorEnv
+Estorna a OP dos Envases
+@type function Processameto
+@version  1.00
+@author mario.antonaccio
+@since 06/03/2022
+@return variant, Sem retorno - Salvose Der Erro de ExecAturo
+/*/
+Static Function EstorEnv()
+
+    Local nI
+    Local aMata650:={}
+    Local cOpEnv
+    Private lMsErroAuto:=.F.
+
+    /// Estorno OP para reciar novamente com nova quantiade e empenho
+
+    For nI:=1 To Len(oEnvase:aCols)
+
+        cOpEnv:=NwFieldGet(oEnvase,"NUMOP",nI)
+
+        aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
+            {'C2_NUM'                   , Substr(cOpEnv,1,6)                , NIL},;
+            {'C2_ITEM'                  , Substr(cOPEnv,7,2)                , NIL},;
+            {'C2_SEQUEN'                , substr(cOpEnv,9,3)                , NIL},;
+            {'C2_PRODUTO'               , NwFieldGet(oEnvase,"PROD",nI)     , NIL},;
+            {'C2_LOCAL'                 , NwFieldGet(oEnvase,"ARMAZ",nI)    , NIL},;
+            {'C2_QUANT'                 , NwFieldGet(oEnvase,"QTDENVORI",nI), NIL},;
+            {'C2_DATPRI'                , dDtEmiss                          , NIL},;
+            {'C2_DATPRF'                , dDtPrf                            , NIL},;
+            {'AUTEXPLODE'               , "S"                               , NIL}} // Indica de explode empenho
+
+        SC2->(DbSetOrder(1))//FILIAL + NUM + ITEM + SEQUEN + ITEMGRD
+        SC2->(DbSeek(xFilial("SC2")+cOPEnv))
+
+        msExecAuto({|x,Y| Mata650(x,Y)},aMata650,5)
+
+        If lMsErroAuto
+            MostraErro()
+            Exit
+        End
+
+    Next
+Return(!(lMsErroAuto))
+
+
+/*/{Protheus.doc} GrvOPPI
+Grava a OP Original
+@type function Processameto
+@version  1.00
+@author mario.antonaccio
+@since 06/03/2022
+@return variant, Sem retorno - Salvose Der Erro de ExecAturo
+/*/
+Static Function GrvOPPI()
+
+    Local aMata650:={}
+    Private lMsErroAuto:=.F.
+
+    /// Estorno OP para reciar novamente com nova quantidade e empenho
+
+    aMATA650 :={{ 'C2_FILIAL' ,cFilAnt ,NIL},;
+        {'C2_NUM'                   , Substr(cNumOp,1,6), NIL},;
+        {'C2_ITEM'                  , Substr(cNumOP,7,2), NIL},;
+        {'C2_SEQUEN'                , substr(cNumOp,9,3), NIL},;
+        {'C2_PRODUTO'               , cProduto          , NIL},;
+        {'C2_LOCAL'                 , cLocalAr          , NIL},;
+        {'C2_QUANT'                 , nQtdeRea          , NIL},;
+        {'C2_DATPRI'                , dDataBase         , NIL},;
+        {'C2_DATPRF'                , dDataBase         , NIL},;
+        {'AUTEXPLODE'               , "N"               , NIL}} // Indica de explode empenho
+
+    msExecAuto({|x,Y| Mata650(x,Y)},aMata650,3)
+    If lMsErroAuto
+        MostraErro()
+    Else
+        RecLock("SC2",.F.)
+        SC2->C2_DATPRI  := dDtPri
+        SC2->C2_DATPRF  := dDtPrf
+        SC2->C2_EMISSAO := dDtEMiss
+        MsUnlock()
+    End
+Return(!(lMsErroAuto))
+
+/*/{Protheus.doc} GrvOPEMP
+Estorna a OP Original e grava ujmanova com o mesmo Numero
+@type function Processameto
+@version  1.00
+@author mario.antonaccio
+@since 06/03/2022
+@return variant, Sem retorno - Salvose Der Erro de ExecAturo
+/*/
+Static Function GrvOPEMP()
+
+    Local nI
+    Local aCabec:={}
+    Local aItens:={}
+    Local aItem:={}
+    Private lMsErroAuto:=.F.
+
+    //Monta o cabeçalho com o número da OP que será utilizada para inclusão dos empenhos.
+    aCabec := {{"D4_OP",cNumOP+Space(03),NIL}}
+
+    //Adiciona novo empenho
+    For nI:=1 to Len(oEmpenho:aCols)
+        If NwDeleted(oEmpenho,nI)
+            Loop
+        End
+        aItens := {}
+        aadd(aItens, {"D4_COD"    , NwFieldGet(oEmpenho,"D4_COD",nI)    , NIL})
+        aadd(aItens, {"D4_LOCAL"  , NwFieldGet(oEmpenho,"D4_LOCAL",nI)  , NIL})
+        aadd(aItens, {"D4_DATA"   , dDtEmiss                            , NIL})
+        aadd(aItens, {"D4_OP"     , cNumOp                              , NIL})
+        aadd(aItens, {"D4_QTDEORI", NwFieldGet(oEmpenho,"GXT_QTREAL",nI), NIL})
+        aadd(aItens, {"D4_QUANT"  , NwFieldGet(oEmpenho,"GXT_QTREAL",nI), NIL})
+        aadd(aItens, {"D4_TRT"    , "001"                               , NIL})
+        //Adiciona a linha do empenho no array de itens.
+        aAdd(aItem,aItens)
+    Next
+    MSExecAuto({|x,y,z| mata381(x,y,z)},aCabec,aItem,3)
+    If lMsErroAuto
+        MostraErro()
+    EndIf
+Return(!(lMsErroAuto))
+
+
+/*
+        // Faço o Estorno da OP Principal
+        //MsAguarde({|lFim|,lOkEstPi:=EstorPI()},"Processamento","Estornando a OP de PI...")
+
+        //Se Ok estorno do PI , entao Estono as Ops de Envase
+        If lOkEstPI
+          //  MsAguarde({|lFim|,lOkEstEN:=EstorEnv()},"Processamento","Estornando as OP's de Envase..")
+        End
+
+        //Se estornou Todo o Processo, entao incluo as OPs de Envase Primeiro
+        If lOkEstEN
+           // MsAguarde({|lFim|,lOkEnv:=GrvOPEnv()},"Processamento","Gerando OP's de Envase..")
+        End
+
+        //Se Gravou OP de Envase, Entao Gero OP de PI
+        If lOkEnv
+           MsAguarde({|lFim|,lOkPI:=GrvOPPI()},"Processamento","Gerando OP de PI..")
+        End
+
+        // Se gerou OP de PI, então Incluo o Empenho com o novo volume
+        If lOkPI
+            MsAguarde({|lFim|,lOkEmp:=GrvOpEmp()},"Processamento","Gerando Empenho da OP de PI..")
+        End
+
+        // Se Gerou Empenho de PI e a OP de PI entao baixo a OP de PI
+        If lOkEmp
+            MsAguarde({|lFim|,lOkBxPI:=GrvBXPI()},"Processamento","Baixando OP de PI..")
+        End
+
+        //Se Todo Processo Ok,entao
+        If  lOkEmp .and. lOkEnv  .and. lOkEstPI .and. lOkEstEN .and. lOkPI .and. lOkBxPI
+            SC2->(dbSetOrder(1))
+            If SC2->(dbSeek(xFilial("SC2")+cNumOp))
+                RecLock("SC2",.F.)
+                SC2->C2_XLIBOP:="1"
+                MsUnLock()
+            End
+*/

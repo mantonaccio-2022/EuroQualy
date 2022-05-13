@@ -37,6 +37,7 @@ User Function EQFLXCX()
     //07 -  Empresas: - C - 10   - Informa quais empresas separadas por ; (ponto e virgula)
     //08 -  Imprime Consolidado - N - 1  (Sim/Nao) -  Informa se imprime a planilha consolidadora por empresa
     //09 -  Imprime DFC - N - 1  (Sim/Nao) -  Informa se imprime a NATUREZAS DFC NO FLUXO
+    //10 - Considera So Conciliados (REA)?- N - 1  (Sim/Nao) -  Informa se imprime somente conciliadaos
 
     aAdd(aSays, "Está rotina tem o objetivo gerar o fluxo de caixa, aglutinado por natureza")
     aAdd(aSays, "para ter uuma visão dos gastos gerados.")
@@ -532,8 +533,15 @@ Gera o Fluxo Realizado, podensdo ser ANalitico ou sintetico (so grupos) Impime C
 Static Function EQFLXREA(lAnalitico,lConsolida,lDFC)
 
     Local nI
-
+    Local cConcilia
     cExprEmp := "% "+FormatIn(AllTrim(mv_par07),";")+" %"
+    
+    // Somente Concilciados
+    If mv_par10 == 1
+       cConcilia:=" %"+" SE5.E5_RECONC ='x' "+" %"
+    Else
+       cConcilia:=" %"+" SE5.E5_RECONC IN ('x',' ') "+" %"
+    End        
 
     For nI:=0 to nDifMes
         cAnoMes:=ANOMES(MonthSum(mv_par01,nI))  // Retona o Ano e o mes seguintes a data base
@@ -595,6 +603,7 @@ Static Function EQFLXREA(lAnalitico,lConsolida,lDFC)
                     AND SE5.E5_MOEDA <> 'TB'
                     AND SE5.E5_SITUACA = ' '
                     AND SE5.E5_MOTBX IN ('DEB', 'NOR', '  ')
+                    AND %Exp:cConcilia%
             ) NAT
         GROUP BY
             FILIAL,
@@ -746,6 +755,7 @@ Static Function EQFLXREA(lAnalitico,lConsolida,lDFC)
                         AND SE5.E5_MOEDA <> 'TB'
                         AND SE5.E5_SITUACA = ' '
                         AND SE5.E5_MOTBX IN ('DEB', 'NOR', '  ')
+                        AND %Exp:cConcilia%                        
                 ) NAT
             GROUP BY
                 NATUREZA,
@@ -996,6 +1006,7 @@ Static Function  EQFLXDIA(lAnalitico,lConsolida,lDF,cTipo)
                         AND SE5.E5_MOEDA <> 'TB'
                         AND SE5.E5_SITUACA = ' '
                         AND SE5.E5_MOTBX IN ('DEB', 'NOR', '  ')
+                        AND %Exp:cConcilia%
                 ) NAT
             GROUP BY
                 FILIAL,
@@ -1151,6 +1162,7 @@ Static Function  EQFLXDIA(lAnalitico,lConsolida,lDF,cTipo)
                         AND SE5.E5_MOEDA <> 'TB'
                         AND SE5.E5_SITUACA = ' '
                         AND SE5.E5_MOTBX IN ('DEB', 'NOR', '  ')
+                        AND %Exp:cConcilia%
                 ) NAT
             GROUP BY
                 NATUREZA,

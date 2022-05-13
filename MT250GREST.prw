@@ -1,5 +1,4 @@
-/*/{Protheus.doc} MT250GREST
-Ponto de Entrada para permitir nova Analise OP quando do estorno
+/*/{Protheus.doc}eq
 @type function Processamento
 @version  1.00
 @author mario.antonaccio
