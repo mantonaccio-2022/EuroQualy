@@ -993,8 +993,8 @@ Static Function GrvBXPI()
         // Verifica Grupo de perguntas
         Pergunte ("MTA680",.F.)
         nParamAnt:=MV_PAR07
-	    SetMVValue("MTA680","MV_PAR07", 3)
-	
+        SetMVValue("MTA680","MV_PAR07", 3)
+
         aVetor :={{"H6_FILIAL" ,cFilAnt ,NIL},;
             {"H6_OP"                   , cNumOP                                       , NIL},;
             {"H6_PRODUTO"              , cProduto                                     , NIL},;
@@ -1017,9 +1017,6 @@ Static Function GrvBXPI()
         If lMsErroAuto
             MostraErro()
         Else
-        Pergunte ("MTA680",.F.)
-        SetMVValue("MTA680","MV_PAR07", nParamAnt)
-	
             CBH->(dbSetOrder(5))
             If CBH->(dbSeek(xFilial("CBH")+cNumOP+Space(03)+SuperGetMv("EQ_OPERFIN",.F.,"40")))
                 If CBH->CBH_QTD <> nQtdeRea
@@ -1028,8 +1025,23 @@ Static Function GrvBXPI()
                     MsUnLock()
                 End
             End
+
+            SC2->(dbSetOrder(1))
+            If SC2->(dbSeek(xFilial("SC2")+cNumOp))
+                If SC2->C2_QUJE == 0
+                    RecLock("SC2",.F.)
+                    SC2->C2_QUJE:=cQtdeRea
+                    NsUnLock()
+                End
+            End        
+
         End
     End
+
+    //Retorna Padrao do Parametro
+     Pergunte ("MTA680",.F.)
+    SetMVValue("MTA680","MV_PAR07", nParamAnt)
+    
 Return(!(lMsErroAuto))
 
 /*/{Protheus.doc} zMemoToA
